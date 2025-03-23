@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Flight {
+  id             Int      @id @default(autoincrement())
+  flightNumber   String   @map("airFln") // 항공편 번호 (ex: KE123)
+  airlineEnglish String   @map("airlineEnglish") // 항공사 영문 (ex: Korean Air)
+  airlineKorean  String   @map("airlineKorean") // 항공사 한글 (ex: 대한항공)
+  airportCode    String   @map("airport") // 공항 코드 (GMP, CJU 등)
+  departureKor   String   @map("boardingKor") // 출발지 한글
+  departureEng   String   @map("boardingEng") // 출발지 영문
+  arrivalKor     String   @map("arrivedKor") // 도착지 한글
+  arrivalEng     String   @map("arrivedEng") // 도착지 영문
+  city           String   @map("city") // 도시 이름
+  gate           String?  @map("gate") // 게이트 정보 (옵션)
+  ioType         String   @map("io") // 입국/출국 구분 (I/O)
+  lineType       String   @map("line") // 노선 타입 (국내선: D / 국제선: I)
+  std            String   @map("std") // 예정 출발시간 (계획된)
+  etd            String   @map("etd") // 실제 출발시간
+  statusKor      String?  @map("rmkKor") // 상태 한글 (ex: 출발, 결항)
+  statusEng      String?  @map("rmkEng") // 상태 영문 (ex: Departed, Cancelled)
+  createdAt      DateTime @default(now())
+}

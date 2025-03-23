@@ -45,3 +45,7 @@ certificates
 # pwa
 /public/sw.js
 /public/workbox-*.js
+
+# prisma build files 
+prisma/*
+!prisma/schema.prisma
