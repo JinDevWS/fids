@@ -95,7 +95,7 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
         );
 
         // 최초 초기화 시엔 푸시 알림 생략
-        if (forceInit) return;
+        // if (forceInit) return;
 
         // 구독자 필터링
         const subscriptions = await prisma.pushSubscription.findMany({
