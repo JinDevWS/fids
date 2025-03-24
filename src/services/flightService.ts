@@ -31,7 +31,7 @@ export const fetchFlightStatus = async (): Promise<FlightItem[]> => {
     params: {
       schStTime: '0000',
       schEdTime: '2359',
-      airportCode: 'GMP',
+      schAirCode: 'GMP',
       schLineType: 'I', // 국제선/국내선
       schIOType: 'I', // 출발편/도착편
       numOfRows: 200,
