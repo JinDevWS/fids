@@ -1,7 +1,12 @@
 // public/service-worker.js
 
 self.addEventListener('push', function (event) {
+  console.log('[SW] 푸시 이벤트 수신됨:', event);
+
   const data = event.data?.json() || {};
+
+  console.log('푸시 payload:', data);
+
   const title = data.title || '알림';
   const options = {
     body: data.body || '',
@@ -11,6 +16,8 @@ self.addEventListener('push', function (event) {
       url: data.url || '/', // 클릭 시 이동할 경로
     },
   };
+
+  console.log('showNotification 호출됨:', title, options);
 
   event.waitUntil(self.registration.showNotification(title, options));
 });

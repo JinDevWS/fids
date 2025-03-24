@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { prisma } from '@/lib/prisma';
 import { sendPushNotification } from '@/utils/pushNotification';
+import pLimit from 'p-limit';
 
 type FlightItem = {
   airFln: string;
@@ -31,7 +32,7 @@ export const fetchFlightStatus = async (): Promise<FlightItem[]> => {
       schStTime: '0000',
       schEdTime: '2359',
       airportCode: 'GMP',
-      schLineType: 'I', // 국제선/국내선 (필요시 동적으로 처리 가능)
+      schLineType: 'I', // 국제선/국내선
       schIOType: 'I', // 출발편/도착편
       numOfRows: 200,
       serviceKey,
@@ -45,74 +46,97 @@ export const fetchFlightStatus = async (): Promise<FlightItem[]> => {
 // 2. 동기화 및 푸시 알림 전송
 export const syncFlights = async () => {
   const flights = await fetchFlightStatus();
+  const limit = pLimit(10); // 병렬 처리 제한
 
-  for (const item of flights) {
-    const { airFln, std, rmkKor } = item;
-    const newStatus = rmkKor || null;
+  await Promise.all(
+    flights.map((item) =>
+      limit(async () => {
+        const { airFln, std, rmkKor } = item;
+        const newStatus = rmkKor || null;
 
-    // 이전 상태 조회
-    const existing = await prisma.flightStatusHistory.findUnique({
-      where: {
-        flightNumber_std: {
-          flightNumber: airFln,
-          std,
-        },
-      },
-    });
+        // 이전 상태 조회
+        const existing = await prisma.flightStatusHistory.findUnique({
+          where: {
+            flightNumber_std: {
+              flightNumber: airFln,
+              std,
+            },
+          },
+        });
 
-    const prevStatus = existing?.newStatus || null;
+        const prevStatus = existing?.newStatus || null;
 
-    // 상태가 변하지 않았다면 스킵
-    if (prevStatus === newStatus) continue;
+        // 상태가 변하지 않았다면 스킵
+        if (prevStatus === newStatus) return;
 
-    // 변경 내역 기록
-    await prisma.flightStatusHistory.upsert({
-      where: {
-        flightNumber_std: {
-          flightNumber: airFln,
-          std,
-        },
-      },
-      update: {
-        prevStatus,
-        newStatus,
-        changedAt: new Date(),
-      },
-      create: {
-        flightNumber: airFln,
-        std,
-        prevStatus,
-        newStatus,
-      },
-    });
+        // 변경 내역 기록
+        await prisma.flightStatusHistory.upsert({
+          where: {
+            flightNumber_std: {
+              flightNumber: airFln,
+              std,
+            },
+          },
+          update: {
+            prevStatus,
+            newStatus,
+            changedAt: new Date(),
+          },
+          create: {
+            flightNumber: airFln,
+            std,
+            prevStatus,
+            newStatus,
+          },
+        });
 
-    console.log(`상태 변경됨: ${airFln} (${prevStatus} → ${newStatus})`);
+        console.log(`상태 변경됨: ${airFln} (${prevStatus} → ${newStatus})`);
 
-    // 푸시 알림 구독자 찾기 (조건: 공항 + 노선 + 출/도착 + enabled)
-    const subscriptions = await prisma.pushSubscription.findMany({
-      where: {
-        airportCode: item.airport,
-        lineType: item.line,
-        ioType: item.io,
-        enabled: true,
-      },
-    });
+        // 구독자 필터링
+        const subscriptions = await prisma.pushSubscription.findMany({
+          where: {
+            airportCode: item.airport,
+            lineType: item.line,
+            ioType: item.io,
+            enabled: true,
+          },
+        });
 
-    for (const sub of subscriptions) {
-      const subscription = {
-        endpoint: sub.endpoint,
-        keys: {
-          auth: sub.auth,
-          p256dh: sub.p256dh,
-        },
-      };
+        // 푸시 알림 병렬 전송
+        await Promise.all(
+          subscriptions.map(async (sub) => {
+            const subscription = {
+              endpoint: sub.endpoint,
+              keys: {
+                auth: sub.auth,
+                p256dh: sub.p256dh,
+              },
+            };
 
-      // 푸시 알림 전송
-      await sendPushNotification(subscription, {
-        title: `${airFln} 상태 변경`,
-        body: `상태: ${prevStatus ?? '없음'} → ${newStatus}`,
-        url: `/flights/${airFln}`,
-      });
-    }
-  }
+            try {
+              await sendPushNotification(subscription, {
+                title: `${airFln} 상태 변경`,
+                body: `상태: ${prevStatus ?? '없음'} → ${newStatus}`,
+                url: `/flights/${airFln}`,
+              });
+            } catch (e: any) {
+              console.error('푸시 실패:', e.message);
+
+              // 구독 정보가 더 이상 유효하지 않으면 DB에서 제거
+              if (e.statusCode === 410 || e.statusCode === 404) {
+                try {
+                  await prisma.pushSubscription.delete({
+                    where: { id: sub.id },
+                  });
+                  console.log(`만료된 구독 제거됨: ${sub.endpoint}`);
+                } catch (deleteError) {
+                  console.error('구독 삭제 실패:', deleteError);
+                }
+              }
+            }
+          }),
+        );
+      }),
+    ),
+  );
 };

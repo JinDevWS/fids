@@ -21,6 +21,8 @@
     "@yarnpkg/pnpify": "^4.1.4",
     "axios": "^1.8.4",
     "next": "15.2.3",
+    "node-cron": "^3.0.3",
+    "p-limit": "^6.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "web-push": "^3.6.7"
@@ -30,6 +32,7 @@
     "@next/eslint-plugin-next": "^15.2.3",
     "@types/next-pwa": "^5",
     "@types/node": "^22.13.11",
+    "@types/node-cron": "^3",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19",
     "@types/web-push": "^3",

@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
 }
 
 // PATCH: enabled 상태만 토글 (스위치 on/off)
+// 사용자가 알림만 끄는 경우
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { userId, airportCode, lineType, ioType, enabled } = body;
@@ -122,7 +123,9 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// DELETE: 구독 제거 (로그아웃 등)
+// DELETE: 구독 제거 (로그아웃, 푸시 만료 등)
+// 매번 스위치를 끌 때마다 Delete 처리하면 비효율적이므로,
+// 스위치 on/off는 patch로 기능 구현
 export async function DELETE(req: NextRequest) {
   const body = await req.json();
   const { userId, airportCode, lineType, ioType } = body;
