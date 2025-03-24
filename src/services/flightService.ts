@@ -44,7 +44,7 @@ export const fetchFlightStatus = async (): Promise<FlightItem[]> => {
 };
 
 // 2. 동기화 및 푸시 알림 전송
-export const syncFlights = async () => {
+export const syncFlights = async ({ forceInit = false } = {}) => {
   const flights = await fetchFlightStatus();
   const limit = pLimit(10); // 병렬 처리 제한
 
@@ -66,8 +66,8 @@ export const syncFlights = async () => {
 
         const prevStatus = existing?.newStatus || null;
 
-        // 상태가 변하지 않았다면 스킵
-        if (prevStatus === newStatus) return;
+        // 상태가 동일하고 강제 기록도 아니면 스킵
+        if (!forceInit && prevStatus === newStatus) return;
 
         // 변경 내역 기록
         await prisma.flightStatusHistory.upsert({
@@ -90,7 +90,12 @@ export const syncFlights = async () => {
           },
         });
 
-        console.log(`상태 변경됨: ${airFln} (${prevStatus} → ${newStatus})`);
+        console.log(
+          `[${forceInit ? '초기 기록' : '상태 변경'}] ${airFln} (${prevStatus} → ${newStatus})`,
+        );
+
+        // 최초 초기화 시엔 푸시 알림 생략
+        if (forceInit) return;
 
         // 구독자 필터링
         const subscriptions = await prisma.pushSubscription.findMany({
@@ -122,7 +127,6 @@ export const syncFlights = async () => {
             } catch (e: any) {
               console.error('푸시 실패:', e.message);
 
-              // 구독 정보가 더 이상 유효하지 않으면 DB에서 제거
               if (e.statusCode === 410 || e.statusCode === 404) {
                 try {
                   await prisma.pushSubscription.delete({
