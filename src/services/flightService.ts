@@ -34,11 +34,22 @@ export const fetchFlightStatus = async (): Promise<FlightItem[]> => {
       schAirCode: 'GMP',
       schLineType: 'I', // 국제선/국내선
       schIOType: 'I', // 출발편/도착편
-      numOfRows: 200,
+      numOfRows: 300,
       serviceKey,
       _type: 'json',
     },
   });
+
+  // console.log(
+  //   '[API 응답 상태]',
+  //   data.response?.header?.resultCode,
+  //   data.response?.header?.resultMsg,
+  // );
+
+  // 인증키 문제 방어코드(인증키나 호출 문제 시 명확히 에러 뜨게 처리)
+  if (data?.response?.header?.resultCode !== '00') {
+    throw new Error(`공공 API 오류: ${data.response?.header?.resultMsg}`);
+  }
 
   return data.response?.body?.items?.item || [];
 };
@@ -46,25 +57,35 @@ export const fetchFlightStatus = async (): Promise<FlightItem[]> => {
 // 2. 동기화 및 푸시 알림 전송
 export const syncFlights = async ({ forceInit = false } = {}) => {
   const flights = await fetchFlightStatus();
+
+  // console.log('[DEBUG] 가져온 항공편 수:', flights.length);
+  // console.log('[DEBUG] 원본 응답:', JSON.stringify(flights, null, 2));
+
   const limit = pLimit(10); // 병렬 처리 제한
 
   await Promise.all(
     flights.map((item) =>
       limit(async () => {
-        const { airFln, std, rmkKor } = item;
-        const newStatus = rmkKor || null;
+        const flightNumber = item.airFln;
+        const std = String(item.std); // std가 숫자로 들어와서 String으로 바꿔줌
+        const newStatus = item.rmkKor ?? null;
 
         // 이전 상태 조회
         const existing = await prisma.flightStatusHistory.findUnique({
           where: {
             flightNumber_std: {
-              flightNumber: airFln,
+              flightNumber,
               std,
             },
           },
         });
 
         const prevStatus = existing?.newStatus || null;
+
+        console.log(`[DEBUG] forceInit: ${forceInit}`);
+        console.log(
+          `[DEBUG] flight: ${flightNumber}, std: ${std}, prev: ${prevStatus}, new: ${newStatus}`,
+        );
 
         // 상태가 동일하고 강제 기록도 아니면 스킵
         if (!forceInit && prevStatus === newStatus) return;
@@ -73,7 +94,7 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
         await prisma.flightStatusHistory.upsert({
           where: {
             flightNumber_std: {
-              flightNumber: airFln,
+              flightNumber,
               std,
             },
           },
@@ -83,7 +104,7 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
             changedAt: new Date(),
           },
           create: {
-            flightNumber: airFln,
+            flightNumber,
             std,
             prevStatus,
             newStatus,
@@ -91,11 +112,11 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
         });
 
         console.log(
-          `[${forceInit ? '초기 기록' : '상태 변경'}] ${airFln} (${prevStatus} → ${newStatus})`,
+          `[${forceInit ? '초기 기록' : '상태 변경'}] ${flightNumber} (${prevStatus} → ${newStatus})`,
         );
 
         // 최초 초기화 시엔 푸시 알림 생략
-        // if (forceInit) return;
+        if (forceInit) return;
 
         // 구독자 필터링
         const subscriptions = await prisma.pushSubscription.findMany({
@@ -120,9 +141,9 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
 
             try {
               await sendPushNotification(subscription, {
-                title: `${airFln} 상태 변경`,
+                title: `${flightNumber} 상태 변경`,
                 body: `상태: ${prevStatus ?? '없음'} → ${newStatus}`,
-                url: `/flights/${airFln}`,
+                url: `/flights/${flightNumber}`,
               });
             } catch (e: any) {
               console.error('푸시 실패:', e.message);
