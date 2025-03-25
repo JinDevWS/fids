@@ -14,16 +14,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 상태 추적만 하는 테이블
+// 상태 추적 + 검색 + 알림용 테이블
 model FlightStatusHistory {
   id           Int      @id @default(autoincrement())
-  flightNumber String // 항공편 번호 (ex: KE123)
-  std          String // 예정 출발 시간
-  prevStatus   String? // 이전 상태 (ex: 출발, 지연)
-  newStatus    String? // 새로운 상태 (ex: 도착, 결항)
+  flightNumber String
+  std          String // 예정 출발 시간 (HHmm)
+  etd          String? // 실제 출발 시간
+  prevStatus   String?
+  newStatus    String?
   changedAt    DateTime @default(now())
 
-  @@unique([flightNumber, std]) // 같은 항공편 + 시간은 한 번만 기록
+  airlineKor  String?
+  airlineEng  String?
+  airport     String?
+  boardingKor String?
+  boardingEng String?
+  arrivedKor  String?
+  arrivedEng  String?
+  gate        String?
+  io          String? // 출/도착 구분 (I/O)
+  line        String? // 국내/국제선 (D/I)
+  city        String?
+  rmkKor      String?
+  rmkEng      String?
+
+  @@unique([flightNumber, std])
 }
 
 model PushSubscription {

@@ -63,6 +63,9 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
 
   const limit = pLimit(10); // 병렬 처리 제한
 
+  const existingCount = await prisma.flightStatusHistory.count(); // 테이블이 비어있는지 확인
+  const isInitialSync = forceInit || existingCount === 0; // 최초 sync 상태 여부 판별
+
   await Promise.all(
     flights.map((item) =>
       limit(async () => {
@@ -89,27 +92,55 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
         //   `[DEBUG] flight: ${flightNumber}, std: ${std}, prev: ${prevStatus}, new: ${newStatus}`,
         // );
 
-        // 상태가 동일하고 강제 기록도 아니면 스킵
+        // 강제 기록이 아니면서 상태가 동일하면 스킵
         if (!forceInit && prevStatus === newStatus) return;
 
         // 변경 내역 기록
         await prisma.flightStatusHistory.upsert({
           where: {
             flightNumber_std: {
-              flightNumber,
-              std,
+              flightNumber: item.airFln,
+              std: String(item.std),
             },
           },
           update: {
             prevStatus,
             newStatus,
             changedAt: new Date(),
+            airlineKor: item.airlineKorean,
+            airlineEng: item.airlineEnglish,
+            airport: item.airport,
+            boardingKor: item.boardingKor,
+            boardingEng: item.boardingEng,
+            arrivedKor: item.arrivedKor,
+            arrivedEng: item.arrivedEng,
+            gate: String(item.gate) ?? ' ',
+            io: item.io,
+            line: item.line,
+            city: item.city,
+            etd: String(item.etd),
+            rmkKor: item.rmkKor,
+            rmkEng: item.rmkEng,
           },
           create: {
-            flightNumber,
-            std,
+            flightNumber: item.airFln,
+            std: String(item.std),
             prevStatus,
             newStatus,
+            airlineKor: item.airlineKorean,
+            airlineEng: item.airlineEnglish,
+            airport: item.airport,
+            boardingKor: item.boardingKor,
+            boardingEng: item.boardingEng,
+            arrivedKor: item.arrivedKor,
+            arrivedEng: item.arrivedEng,
+            gate: String(item.gate) ?? ' ',
+            io: item.io,
+            line: item.line,
+            city: item.city,
+            etd: String(item.etd),
+            rmkKor: item.rmkKor,
+            rmkEng: item.rmkEng,
           },
         });
 
@@ -118,7 +149,7 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
         );
 
         // 최초 초기화 또는 newStatus가 null인 경우 푸시 알림 생략
-        if (forceInit || newStatus === null) return;
+        if (isInitialSync || newStatus === null) return;
 
         // 구독자 필터링
         const subscriptions = await prisma.pushSubscription.findMany({
@@ -142,9 +173,10 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
             };
 
             try {
+              const splittedEtd = String(item.etd).split('');
               await sendPushNotification(subscription, {
-                title: `${flightNumber} 상태 변경`,
-                body: `상태: ${newStatus}`,
+                title: `[${splittedEtd[0]}${splittedEtd[1]} : ${splittedEtd[2]}${splittedEtd[3]}] ${flightNumber} 상태 변경`,
+                body: `상태: ${newStatus}, 게이트: ${item.gate}`,
                 // url: `/flights/${flightNumber}`,
               });
             } catch (e: any) {

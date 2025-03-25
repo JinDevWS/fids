@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma": "yarn pnpify prisma generate",
     "init-flight": "yarn tsx scripts/initializeFlightStatus.ts"
   },
   "dependencies": {
@@ -49,5 +48,8 @@
     "prisma": "6.5.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
   }
 }
