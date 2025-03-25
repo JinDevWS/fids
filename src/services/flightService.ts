@@ -66,6 +66,8 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
   await Promise.all(
     flights.map((item) =>
       limit(async () => {
+        // console.log('[DEBUG] item: ', item);
+
         const flightNumber = item.airFln;
         const std = String(item.std); // std가 숫자로 들어와서 String으로 바꿔줌
         const newStatus = item.rmkKor ?? null;
@@ -82,10 +84,10 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
 
         const prevStatus = existing?.newStatus || null;
 
-        console.log(`[DEBUG] forceInit: ${forceInit}`);
-        console.log(
-          `[DEBUG] flight: ${flightNumber}, std: ${std}, prev: ${prevStatus}, new: ${newStatus}`,
-        );
+        // console.log(`[DEBUG] forceInit: ${forceInit}`);
+        // console.log(
+        //   `[DEBUG] flight: ${flightNumber}, std: ${std}, prev: ${prevStatus}, new: ${newStatus}`,
+        // );
 
         // 상태가 동일하고 강제 기록도 아니면 스킵
         if (!forceInit && prevStatus === newStatus) return;
@@ -115,14 +117,14 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
           `[${forceInit ? '초기 기록' : '상태 변경'}] ${flightNumber} (${prevStatus} → ${newStatus})`,
         );
 
-        // 최초 초기화 시엔 푸시 알림 생략
-        if (forceInit) return;
+        // 최초 초기화 또는 newStatus가 null인 경우 푸시 알림 생략
+        if (forceInit || newStatus === null) return;
 
         // 구독자 필터링
         const subscriptions = await prisma.pushSubscription.findMany({
           where: {
             airportCode: item.airport,
-            lineType: item.line,
+            lineType: item.line === '국제' ? 'I' : 'D',
             ioType: item.io,
             enabled: true,
           },
@@ -142,8 +144,8 @@ export const syncFlights = async ({ forceInit = false } = {}) => {
             try {
               await sendPushNotification(subscription, {
                 title: `${flightNumber} 상태 변경`,
-                body: `상태: ${prevStatus ?? '없음'} → ${newStatus}`,
-                url: `/flights/${flightNumber}`,
+                body: `상태: ${newStatus}`,
+                // url: `/flights/${flightNumber}`,
               });
             } catch (e: any) {
               console.error('푸시 실패:', e.message);
