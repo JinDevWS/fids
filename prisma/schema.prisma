@@ -14,9 +14,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 상태 추적 + 검색 + 알림용 테이블
+// 스냅샷 테이블(목록용)
+model Flight {
+  id           BigInt  @id @default(autoincrement())
+  flightNumber String  @db.VarChar(8)
+  std          String  @db.VarChar(4)
+  etd          String? @db.VarChar(4)
+  airport      String  @db.VarChar(4)
+  line         String  @db.VarChar(1) // 'I': 국제선, 'D': 국내선
+  io           String  @db.VarChar(1) // 'I': 출발편, 'O': 도착편
+  gate         String?
+  statusKor    String? // rmkKor
+  statusEng    String? // rmkEng
+
+  airlineKor  String?
+  airlineEng  String?
+  boardingKor String?
+  boardingEng String?
+  arrivedKor  String?
+  arrivedEng  String?
+  city        String?
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([flightNumber, std, airport, io, line])
+}
+
+// 상태 추적 + 알림용 로그(history) 테이블
 model FlightStatusHistory {
-  id           Int      @id @default(autoincrement())
+  id           BigInt   @id @default(autoincrement())
   flightNumber String
   std          String // 예정 출발 시간 (HHmm)
   etd          String? // 실제 출발 시간
@@ -42,7 +69,7 @@ model FlightStatusHistory {
 }
 
 model PushSubscription {
-  id          Int      @id @default(autoincrement())
+  id          BigInt   @id @default(autoincrement())
   endpoint    String   @unique
   auth        String
   p256dh      String
