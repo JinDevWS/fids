@@ -26,6 +26,8 @@ import { SyncFlightsOptions } from '@/types/types';
 let currentTask: ScheduledTask | null = null;
 
 export const startSelectedSync = async () => {
+  console.log('[CRON] startSelectedSync() 실행됨');
+
   const config = await prisma.syncConfig.findUnique({ where: { id: 1 } });
   let dateTime = DateTime.now().setZone('Asia/Seoul').toFormat('yyyy-MM-dd HH:mm:ss');
 
@@ -48,6 +50,10 @@ export const startSelectedSync = async () => {
       schLineType: config.line,
       schIOType: config.io,
     } as SyncFlightsOptions);
+    console.log(
+      `[CRON] 항공편 동기화 완료: ${config.airport} ${config.line} ${config.io}`,
+      dateTime,
+    );
   });
 
   console.log(`[CRON] 새 cron 시작됨: ${config.airport} ${config.line} ${config.io}`, dateTime);

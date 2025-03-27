@@ -24,6 +24,12 @@ export type SyncFlightsOptions = {
   forceInit?: boolean;
 };
 
+export type SyncConfigOptions = {
+  airport: string;
+  line: string;
+  io: string;
+};
+
 export type NotificationPayload = {
   title: string;
   body: string;

@@ -10,6 +10,7 @@ self.addEventListener('push', function (event) {
   const title = data.title || '알림';
   const options = {
     body: data.body || '',
+    tag: data.id, // tag를 넣으면 중복 방지됨(tag 속성은 같은 tag의 알림이 이미 떠 있으면 새로 뜨지 않게 해주는 기능)
     icon: '/icons/airplane_icon_192x192.png', // PWA 아이콘 (선택)
     badge: '/icons/airplane_icon_72x72.png',
     data: {
