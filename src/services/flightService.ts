@@ -2,29 +2,13 @@ import axios from 'axios';
 import { prisma } from '@/lib/prisma';
 import { sendPushNotification } from '@/utils/pushNotification';
 import pLimit from 'p-limit';
-
-type FlightItem = {
-  airFln: string;
-  airlineEnglish: string;
-  airlineKorean: string;
-  airport: string;
-  boardingKor: string;
-  boardingEng: string;
-  arrivedKor: string;
-  arrivedEng: string;
-  city: string;
-  gate?: string;
-  io: string; // 출/도착 구분: I or O
-  line: string; // 국내/국제선: D or I
-  std: string; // 예정 출발시간
-  etd: string; // 실제 출발시간
-  rmkKor?: string; // 상태 (한글)
-  rmkEng?: string; // 상태 (영문)
-};
+import { FlightItem, SyncFlightsOptions } from '@/types/types';
 
 const url = 'http://openapi.airport.co.kr:80/service/rest/FlightStatusList/getFlightStatusList';
 const serviceKey = process.env.AIRPORT_API_KEY;
 const limit = pLimit(10); // 병렬 처리 제한
+
+// TODO: DB에서 항공편 목록 조회 함수 작성
 
 // 전체 항공편 상태 조회(모든 공항, 국제선+국내선, 출발편+도착편 모두 다)
 export const fetchFlightStatusAll = async (): Promise<FlightItem[]> => {
@@ -32,7 +16,7 @@ export const fetchFlightStatusAll = async (): Promise<FlightItem[]> => {
     params: {
       schStTime: '0000',
       schEdTime: '2359',
-      numOfRows: 300,
+      numOfRows: 3000,
       serviceKey,
       _type: 'json',
     },
@@ -53,11 +37,11 @@ export const fetchFlightStatusAll = async (): Promise<FlightItem[]> => {
 };
 
 // 항공편 상태 조회(공항코드, 국제/국내, 출발/도착 필터링 적용)
-export const fetchFlightStatus = async (
-  schAirCode: string,
-  schLineType: string, // 국제선/국내선
-  schIOType: string, // 출발편/도착편
-): Promise<FlightItem[]> => {
+export const fetchFlightStatus = async ({
+  schAirCode,
+  schLineType, // 국제선/국내선
+  schIOType, // 출발편/도착편
+}: SyncFlightsOptions): Promise<FlightItem[]> => {
   const { data } = await axios.get(url, {
     params: {
       schStTime: '0000',
@@ -88,8 +72,8 @@ export const fetchFlightStatus = async (
 // 푸시 알림 전송
 export const sendPush = async (item: FlightItem) => {
   const flightNumber = item.airFln;
-  const etd = String(item.etd);
-  const gate = String(item.gate);
+  const etd = item.etd ? String(item.etd) : null;
+  const gate = item.gate ? String(item.gate) : '';
   const line = item.line === '국제' ? 'I' : 'D';
   const newStatus = item.rmkKor ?? null;
 
@@ -115,9 +99,11 @@ export const sendPush = async (item: FlightItem) => {
       };
 
       try {
-        const splittedEtd = etd.split(''); // 시간 [00:00] 형식으로 표시하려고 split 함
+        const formattedEtd = etd
+          ? `${etd.split('')[0]}${etd.split('')[1]}:${etd.split('')[2]}${etd.split('')[3]}`
+          : '--:--'; // 시간 [00:00] 형식으로 표시하려고 split 함
         await sendPushNotification(subscription, {
-          title: `[${splittedEtd[0]}${splittedEtd[1]}:${splittedEtd[2]}${splittedEtd[3]}] ${flightNumber} 상태 변경`,
+          title: `[${formattedEtd}] ${flightNumber} 상태 변경`,
           body: `상태: ${newStatus}, 게이트: ${gate}`,
           // url: `/flights/${flightNumber}`,
         });
@@ -149,9 +135,9 @@ export const flightsUpsert = async () => {
         // console.log('[DEBUG] item: ', item);
 
         const flightNumber = item.airFln;
-        const std = String(item.std); // std가 숫자로 들어와서 String으로 바꿔줌
-        const etd = String(item.etd);
-        const gate = String(item.gate);
+        const std = item.std ? String(item.std) : '';
+        const etd = item.etd ? String(item.etd) : '';
+        const gate = item.gate ? String(item.gate) : '';
         const line = item.line === '국제' ? 'I' : 'D';
 
         // Flight 스냅샷 테이블 upsert
@@ -203,14 +189,9 @@ export const flightsUpsert = async () => {
 };
 
 // 동기화
-export const syncFlights = async (
-  forceInitParam: boolean,
-  schAirCode: string,
-  schLineType: string, // 국제선/국내선
-  schIOType: string, // 출발편/도착편
-) => {
-  const forceInit = forceInitParam ?? false;
-  const flights = await fetchFlightStatus(schAirCode, schLineType, schIOType);
+export const syncFlights = async (options: SyncFlightsOptions) => {
+  const forceInit = options.forceInit ?? false;
+  const flights = await fetchFlightStatus(options);
 
   // console.log('[DEBUG] 가져온 항공편 수:', flights.length);
   // console.log('[DEBUG] 원본 응답:', JSON.stringify(flights, null, 2));
@@ -227,9 +208,9 @@ export const syncFlights = async (
         // console.log('[DEBUG] item: ', item);
 
         const flightNumber = item.airFln;
-        const std = String(item.std); // std가 숫자로 들어와서 String으로 바꿔줌
-        const etd = String(item.etd);
-        const gate = String(item.gate);
+        const std = item.std ? String(item.std) : '';
+        const etd = item.etd ? String(item.etd) : '';
+        const gate = item.gate ? String(item.gate) : '';
         const line = item.line === '국제' ? 'I' : 'D';
         const newStatus = item.rmkKor ?? null;
 

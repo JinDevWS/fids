@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { PushSubscriptionFields } from '@/types/types';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET: 사용자 구독 상태 조회
@@ -40,7 +41,15 @@ export async function GET(req: NextRequest) {
 // POST: 구독 등록 또는 수정 (푸시 키, 상태 포함)
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { endpoint, keys, userId, airportCode, lineType, ioType, enabled = false } = body;
+  const {
+    endpoint,
+    keys,
+    userId,
+    airportCode,
+    lineType,
+    ioType,
+    enabled = false,
+  }: PushSubscriptionFields = body;
 
   if (
     !endpoint ||

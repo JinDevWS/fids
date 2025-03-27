@@ -4,10 +4,16 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 import { syncFlights } from '@/services/flightService';
+import { SyncFlightsOptions } from '@/types/types';
 
 (async () => {
   console.log('항공편 상태 초기화 시작');
   console.log('[DEBUG] VAPID_PUBLIC_KEY:', process.env.VAPID_PUBLIC_KEY);
-  await syncFlights(true, 'GMP', 'I', 'I');
+  const options: SyncFlightsOptions = {
+    schAirCode: 'GMP',
+    schLineType: 'I',
+    schIOType: 'I',
+  };
+  await syncFlights(options);
   console.log('초기화 완료');
 })();

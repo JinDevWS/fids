@@ -1,3 +1,4 @@
+import { NotificationPayload } from '@/types/types';
 import webpush from 'web-push';
 
 let isVapidConfigured = false;
@@ -11,12 +12,6 @@ export const setupVapidKeys = () => {
     );
     isVapidConfigured = true;
   }
-};
-
-type NotificationPayload = {
-  title: string;
-  body: string;
-  url?: string;
 };
 
 export const sendPushNotification = async (

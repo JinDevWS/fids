@@ -82,3 +82,12 @@ model PushSubscription {
 
   @@unique([userId, airportCode, lineType, ioType]) // 중복 구독 방지
 }
+
+// (공항 코드 + 국제선/국내선 + 도착/출발) 사용자 선택값 저장 테이블(항공편 목록 cron 동기화용)
+model SyncConfig {
+  id        Int      @id @default(1) // 단일 row만 유지
+  airport   String   @db.VarChar(10)
+  line      String   @db.VarChar(1) // 'I' or 'D'
+  io        String   @db.VarChar(1) // 'I' or 'O'
+  updatedAt DateTime @updatedAt
+}
