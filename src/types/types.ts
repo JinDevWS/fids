@@ -1,3 +1,5 @@
+import { Flight } from '@prisma';
+
 export type FlightItem = {
   airFln: string;
   airlineEnglish: string;
@@ -55,3 +57,8 @@ export type PushSubscriptionFields = {
   ioType: string;
   enabled?: boolean;
 };
+
+export interface FlightState {
+  flights: Flight[];
+  setFlights: (list: Flight[]) => void;
+}

@@ -5,6 +5,7 @@ import { Roboto } from 'next/font/google';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from '../themes/theme';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import AppInit from '@/components/AppInit';
 
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
@@ -42,6 +43,7 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <ServiceWorkerRegister />
+            <AppInit />
             {children}
           </ThemeProvider>
         </AppRouterCacheProvider>

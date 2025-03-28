@@ -2,13 +2,49 @@ import axios from 'axios';
 import { prisma } from '@/lib/prisma';
 import { sendPushNotification } from '@/utils/pushNotification';
 import pLimit from 'p-limit';
-import { FlightItem, SyncFlightsOptions } from '@/types/types';
+import { FlightItem, SyncConfigOptions, SyncFlightsOptions } from '@/types/types';
+import { Flight } from '@prisma';
 
 const url = 'http://openapi.airport.co.kr:80/service/rest/FlightStatusList/getFlightStatusList';
 const serviceKey = process.env.AIRPORT_API_KEY;
 const limit = pLimit(10); // 병렬 처리 제한
 
-// TODO: DB에서 항공편 목록 조회 함수 작성
+// DB에서 항공편 동기화용 필터링 설정값(공항코드, 국제선/국내선, 출발/도착) 조회
+export const getSyncConfig = async (): Promise<SyncConfigOptions> => {
+  const config = await prisma.syncConfig.findUnique({ where: { id: 1 } });
+
+  // DB에 값이 없으면 upsert해주고 기본셋팅값(김포, 국제선, 도착) 리턴
+  if (config === null) {
+    const req = { airport: 'GMP', line: 'I', io: 'I' };
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/sync/config/update`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    });
+    return req;
+  }
+
+  const syncConfig: SyncConfigOptions = {
+    airport: config.airport,
+    line: config.line,
+    io: config.io,
+  };
+  return syncConfig;
+};
+
+// DB에서 항공편 목록 조회
+export const getFlightList = async (): Promise<Flight[]> => {
+  const config = await getSyncConfig();
+
+  const flightList = await prisma.flight.findMany({
+    where: {
+      airport: config.airport,
+      line: config.line,
+      io: config.io,
+    },
+  });
+
+  return flightList;
+};
 
 // 전체 항공편 상태 조회(모든 공항, 국제선+국내선, 출발편+도착편 모두 다)
 export const fetchFlightStatusAll = async (): Promise<FlightItem[]> => {

@@ -1,20 +1,14 @@
-'use client';
+import { getSyncConfig } from '@/services/flightService';
 
-import { SyncConfigOptions } from '@/types/types';
+export default async function AirportChoiceForm() {
+  const syncConfig = await getSyncConfig();
 
-export default function AirportChoiceForm() {
-  const req: SyncConfigOptions = { airport: 'GMP', line: 'I', io: 'I' };
+  const handleSubmit = async () => {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/sync/config/update`, {
+      method: 'POST',
+      body: JSON.stringify(syncConfig),
+    });
+  };
 
-  return (
-    <button
-      onClick={async () => {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/sync/update`, {
-          method: 'POST',
-          body: JSON.stringify(req),
-        });
-      }}
-    >
-      공항코드+국제/국내+출발/도착 설정 저장
-    </button>
-  );
+  return <button onClick={handleSubmit}>공항코드+국제/국내+출발/도착 설정 저장</button>;
 }
