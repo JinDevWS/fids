@@ -41,6 +41,9 @@ export const getFlightList = async (): Promise<Flight[]> => {
       line: config.line,
       io: config.io,
     },
+    select: {
+      newStatus: true,
+    },
   });
 
   return flightList;

@@ -1,11 +1,11 @@
 // 수동 새로고침
 
-import { getFlightList } from '@/services/flightService';
 import { updateUI } from './updateUI';
 
 export async function handleManualRefresh() {
   try {
-    const data = await getFlightList();
+    const res = await fetch('/api/list');
+    const data = await res.json();
 
     updateUI(data); // 현재 탭만 갱신
   } catch (err) {
