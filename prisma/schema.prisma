@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "./"
@@ -14,42 +8,54 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 스냅샷 테이블(목록용)
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  name       String?
+  image      String?
+  password   String? // 이메일 로그인 시
+  provider   String? // OAuth 제공자 (예: 'google')
+  providerId String? // OAuth 유저 ID
+  createdAt  DateTime @default(now())
+
+  subscriptions PushSubscription[]
+}
+
 model Flight {
   id           BigInt  @id @default(autoincrement())
   flightNumber String  @db.VarChar(8)
-  std          String  @db.VarChar(4)
-  etd          String? @db.VarChar(4)
+  std          String  @db.VarChar(4) // 예정 시간
+  etd          String? @db.VarChar(4) // 실제 시간
   airport      String  @db.VarChar(4)
   line         String  @db.VarChar(1) // 'I': 국제선, 'D': 국내선
-  io           String  @db.VarChar(1) // 'I': 출발편, 'O': 도착편
+  io           String  @db.VarChar(1) // 'I': 출발, 'O': 도착
   gate         String?
-  statusKor    String? // rmkKor
-  statusEng    String? // rmkEng
+  statusKor    String?
+  statusEng    String?
+  airlineKor   String?
+  airlineEng   String?
+  boardingKor  String?
+  boardingEng  String?
+  arrivedKor   String?
+  arrivedEng   String?
+  city         String?
 
-  airlineKor  String?
-  airlineEng  String?
-  boardingKor String?
-  boardingEng String?
-  arrivedKor  String?
-  arrivedEng  String?
-  city        String?
+  histories FlightStatusHistory[]
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
-  @@unique([flightNumber, std, airport, io, line])
+  @@unique([flightNumber, std, airport, io, line]) // 항공편 유일성 보장
 }
 
-// 상태 추적 + 알림용 로그(history) 테이블
 model FlightStatusHistory {
-  id           BigInt   @id @default(autoincrement())
-  flightNumber String
-  std          String // 예정 출발 시간 (HHmm)
-  etd          String? // 실제 출발 시간
-  prevStatus   String?
-  newStatus    String?
-  changedAt    DateTime @default(now())
+  id       BigInt @id @default(autoincrement())
+  flightId BigInt
+  flight   Flight @relation(fields: [flightId], references: [id])
+
+  prevStatus String?
+  newStatus  String?
+  changedAt  DateTime @default(now())
 
   airlineKor  String?
   airlineEng  String?
@@ -59,33 +65,33 @@ model FlightStatusHistory {
   arrivedKor  String?
   arrivedEng  String?
   gate        String?
-  io          String? // 출/도착 구분 (I/O)
-  line        String? // 국내/국제선 (D/I)
+  io          String?
+  line        String?
   city        String?
   rmkKor      String?
   rmkEng      String?
-
-  @@unique([flightNumber, std])
 }
 
 model PushSubscription {
-  id          BigInt   @id @default(autoincrement())
-  endpoint    String   @unique
-  auth        String
-  p256dh      String
-  userId      String // 로그인된 사용자 ID
-  airportCode String
-  lineType    String
-  ioType      String
-  enabled     Boolean  @default(false) // 사용자가 스위치 켜놓은 상태인지 여부
-  createdAt   DateTime @default(now())
+  id        BigInt   @id @default(autoincrement())
+  endpoint  String   @unique
+  auth      String
+  p256dh    String
+  enabled   Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  @@unique([userId, airportCode, lineType, ioType]) // 중복 구독 방지
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  airportCode String // 예: "GMP"
+  lineType    String // 'I' or 'D'
+  ioType      String // 'I' or 'O'
+
+  @@unique([userId, airportCode, lineType, ioType]) // 한 명당 한 조합만 구독 가능
 }
 
-// (공항 코드 + 국제선/국내선 + 도착/출발) 사용자 선택값 저장 테이블(항공편 목록 cron 동기화용)
 model SyncConfig {
-  id        Int      @id @default(1) // 단일 row만 유지
+  id        Int      @id @default(1)
   airport   String   @db.VarChar(10)
   line      String   @db.VarChar(1) // 'I' or 'D'
   io        String   @db.VarChar(1) // 'I' or 'O'
