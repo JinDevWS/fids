@@ -1,4 +1,4 @@
-import { Flight, FlightStatusHistory } from '@prisma';
+import { Prisma } from '@prisma';
 
 export type FlightItem = {
   airFln: string;
@@ -38,7 +38,7 @@ export type NotificationPayload = {
   url?: string;
 };
 
-export type PushNotificationToggleProps = {
+export type PushSubscriptionUniqueKeys = {
   userId: string;
   airportCode: string;
   lineType: string;
@@ -58,9 +58,17 @@ export type PushSubscriptionFields = {
   enabled?: boolean;
 };
 
+export type PushUpdateOptions = {
+  userId: string;
+  airportCode: string;
+  lineType: string;
+  ioType: string;
+  enabled?: boolean;
+};
+
 export interface FlightState {
-  flights: Flight[];
-  setFlights: (list: Flight[]) => void;
+  flights: FlightList;
+  setFlights: (list: FlightList) => void;
 }
 
 export type FlightHistoryDTO = {
@@ -91,3 +99,9 @@ export type FlightHistoryDTO = {
   rmkKor?: string | null;
   rmkEng?: string | null;
 };
+
+export type PushSubscriptionEnabled = {
+  enabled: boolean;
+};
+
+export type FlightList = Prisma.FlightGetPayload<{ include: { histories: true } }>[] | null;

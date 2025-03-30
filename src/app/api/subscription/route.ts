@@ -1,5 +1,15 @@
-import { prisma } from '@/lib/prisma';
-import { PushSubscriptionFields } from '@/types/types';
+// import { prisma } from '@/lib/prisma';
+import {
+  deletePushSubscByUnique,
+  getPushSubscriptionEnabled,
+  updatePushSubscription,
+  upsertPushSubscription,
+} from '@/daos/pushSubscriptionDao';
+import {
+  PushSubscriptionFields,
+  PushSubscriptionUniqueKeys,
+  PushUpdateOptions,
+} from '@/types/types';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET: 사용자 구독 상태 조회
@@ -15,22 +25,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const subscription = await prisma.pushSubscription.findUnique({
-      where: {
-        userId_airportCode_lineType_ioType: {
-          userId,
-          airportCode,
-          lineType,
-          ioType,
-        },
-      },
-      select: {
-        enabled: true,
-      },
+    const subscriptionEnabled = await getPushSubscriptionEnabled({
+      userId,
+      airportCode,
+      lineType,
+      ioType,
     });
 
     return NextResponse.json({
-      enabled: subscription?.enabled ?? false,
+      enabled: subscriptionEnabled?.enabled ?? false,
     });
   } catch (err) {
     console.error('Failed to fetch subscription status:', err);
@@ -41,55 +44,30 @@ export async function GET(req: NextRequest) {
 // POST: 구독 등록 또는 수정 (푸시 키, 상태 포함)
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const {
-    endpoint,
-    keys,
-    userId,
-    airportCode,
-    lineType,
-    ioType,
-    enabled = false,
-  }: PushSubscriptionFields = body;
-
   if (
-    !endpoint ||
-    !keys?.auth ||
-    !keys?.p256dh ||
-    !userId ||
-    !airportCode ||
-    !lineType ||
-    !ioType
+    !body.endpoint ||
+    !body.keys?.auth ||
+    !body.keys?.p256dh ||
+    !body.userId ||
+    !body.airportCode ||
+    !body.lineType ||
+    !body.ioType
   ) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
+  const fields: PushSubscriptionFields = {
+    endpoint: body.endpoint,
+    keys: body.keys,
+    userId: body.userId,
+    airportCode: body.airportCode,
+    lineType: body.lineType,
+    ioType: body.ioType,
+    enabled: body.enabled ?? false,
+  };
+
   try {
-    await prisma.pushSubscription.upsert({
-      where: {
-        userId_airportCode_lineType_ioType: {
-          userId,
-          airportCode,
-          lineType,
-          ioType,
-        },
-      },
-      update: {
-        endpoint,
-        auth: keys.auth,
-        p256dh: keys.p256dh,
-        enabled,
-      },
-      create: {
-        userId,
-        endpoint,
-        auth: keys.auth,
-        p256dh: keys.p256dh,
-        airportCode,
-        lineType,
-        ioType,
-        enabled,
-      },
-    });
+    await upsertPushSubscription(fields);
 
     return NextResponse.json({ success: true });
   } catch (err) {
@@ -102,26 +80,29 @@ export async function POST(req: NextRequest) {
 // 사용자가 알림만 끄는 경우
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
-  const { userId, airportCode, lineType, ioType, enabled } = body;
 
-  if (!userId || !airportCode || !lineType || !ioType || typeof enabled !== 'boolean') {
+  if (
+    !body.userId ||
+    !body.airportCode ||
+    !body.lineType ||
+    !body.ioType ||
+    typeof body.enabled !== 'boolean'
+  ) {
     return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 });
   }
 
-  try {
-    const updated = await prisma.pushSubscription.updateMany({
-      where: {
-        userId,
-        airportCode,
-        lineType,
-        ioType,
-      },
-      data: {
-        enabled,
-      },
-    });
+  const options: PushUpdateOptions = {
+    userId: body.userId,
+    airportCode: body.airportCode,
+    lineType: body.lineType,
+    ioType: body.ioType,
+    enabled: body.enabled,
+  };
 
-    if (updated.count === 0) {
+  try {
+    const updatedCount = await updatePushSubscription(options);
+
+    if (updatedCount === 0) {
       return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
     }
 
@@ -137,21 +118,20 @@ export async function PATCH(req: NextRequest) {
 // 스위치 on/off는 patch로 기능 구현
 export async function DELETE(req: NextRequest) {
   const body = await req.json();
-  const { userId, airportCode, lineType, ioType } = body;
 
-  if (!userId || !airportCode || !lineType || !ioType) {
+  if (!body.userId || !body.airportCode || !body.lineType || !body.ioType) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
+  const uniqueKeys: PushSubscriptionUniqueKeys = {
+    userId: body.userId,
+    airportCode: body.airportCode,
+    lineType: body.lineType,
+    ioType: body.ioType,
+  };
+
   try {
-    await prisma.pushSubscription.deleteMany({
-      where: {
-        userId,
-        airportCode,
-        lineType,
-        ioType,
-      },
-    });
+    await deletePushSubscByUnique(uniqueKeys);
 
     return NextResponse.json({ success: true });
   } catch (err) {

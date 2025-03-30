@@ -18,17 +18,17 @@
 // };
 
 import cron, { ScheduledTask } from 'node-cron';
-import { prisma } from '@/lib/prisma';
 import { syncFlights } from '@/services/flightService';
 import { DateTime } from 'luxon';
 import { SyncFlightsOptions } from '@/types/types';
+import { findSyncConfig } from '@/daos/syncConfigDao';
 
 let currentTask: ScheduledTask | null = null;
 
 export const startSelectedSync = async () => {
   console.log('[CRON] startSelectedSync() 실행됨');
 
-  const config = await prisma.syncConfig.findUnique({ where: { id: 1 } });
+  const config = await findSyncConfig();
   let dateTime = DateTime.now().setZone('Asia/Seoul').toFormat('yyyy-MM-dd HH:mm:ss');
 
   if (!config) {

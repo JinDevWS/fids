@@ -1,13 +1,13 @@
 // 서버에서 SyncConfig 변경 감지하면 cron 재시작 (폴링(주기적 검사))
 
-import { prisma } from '@/lib/prisma';
 import { startSelectedSync } from './syncJob';
+import { findSyncConfig } from '@/daos/syncConfigDao';
 
 let lastHash = '';
 
 export const watchSyncConfig = async () => {
   setInterval(async () => {
-    const config = await prisma.syncConfig.findUnique({ where: { id: 1 } });
+    const config = await findSyncConfig();
     const hash = `${config?.airport}-${config?.line}-${config?.io}`;
 
     if (hash !== lastHash) {

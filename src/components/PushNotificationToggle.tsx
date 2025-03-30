@@ -1,6 +1,6 @@
 'use client';
 
-import { PushNotificationToggleProps } from '@/types/types';
+import { PushSubscriptionUniqueKeys } from '@/types/types';
 import { useEffect, useState } from 'react';
 
 export default function PushNotificationToggle({
@@ -8,7 +8,7 @@ export default function PushNotificationToggle({
   airportCode,
   lineType,
   ioType,
-}: PushNotificationToggleProps) {
+}: PushSubscriptionUniqueKeys) {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
 

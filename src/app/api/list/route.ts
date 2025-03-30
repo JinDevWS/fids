@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const data = await getFlightList();
-    const serialized = data.map((item) => ({
+    const serialized = data?.map((item) => ({
       ...item,
       id: item.id.toString(), // BigInt를 문자열로 변환
     }));

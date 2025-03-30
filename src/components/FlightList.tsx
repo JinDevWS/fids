@@ -25,7 +25,7 @@ export default function FlightList() {
         </tr>
       </thead>
       <tbody>
-        {flights.map((flight) => (
+        {flights?.map((flight) => (
           <tr key={flight.id}>
             <td>{flight.std}</td>
             <td>{flight.etd}</td>
@@ -36,7 +36,7 @@ export default function FlightList() {
               {flight.airlineKor} {flight.flightNumber}
             </td>
             <td>{flight.gate}</td>
-            <td>{flight.statusKor}</td>
+            <td>{flight.rmkKor}</td>
           </tr>
         ))}
       </tbody>
