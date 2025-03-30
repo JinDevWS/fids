@@ -2,8 +2,9 @@ import axios from 'axios';
 import { prisma } from '@/lib/prisma';
 import { sendPushNotification } from '@/utils/pushNotification';
 import pLimit from 'p-limit';
-import { FlightItem, SyncConfigOptions, SyncFlightsOptions } from '@/types/types';
+import { FlightHistoryDTO, FlightItem, SyncConfigOptions, SyncFlightsOptions } from '@/types/types';
 import { Flight } from '@prisma';
+import { toFlightHistoryDTO } from './flightHistoryMapper';
 
 const url = 'http://openapi.airport.co.kr:80/service/rest/FlightStatusList/getFlightStatusList';
 const serviceKey = process.env.AIRPORT_API_KEY;
@@ -41,8 +42,11 @@ export const getFlightList = async (): Promise<Flight[]> => {
       line: config.line,
       io: config.io,
     },
-    select: {
-      newStatus: true,
+    include: {
+      histories: {
+        orderBy: { changedAt: 'desc' },
+        take: 1, // 가장 최근 상태만
+      },
     },
   });
 
@@ -193,8 +197,8 @@ export const flightsUpsert = async () => {
           update: {
             etd,
             gate,
-            statusKor: item.rmkKor,
-            statusEng: item.rmkEng,
+            rmkKor: item.rmkKor,
+            rmkEng: item.rmkEng,
             airlineKor: item.airlineKorean,
             airlineEng: item.airlineEnglish,
             boardingKor: item.boardingKor,
@@ -211,8 +215,8 @@ export const flightsUpsert = async () => {
             io: item.io,
             line,
             gate,
-            statusKor: item.rmkKor,
-            statusEng: item.rmkEng,
+            rmkKor: item.rmkKor,
+            rmkEng: item.rmkEng,
             airlineKor: item.airlineKorean,
             airlineEng: item.airlineEnglish,
             boardingKor: item.boardingKor,
@@ -227,6 +231,58 @@ export const flightsUpsert = async () => {
   );
 };
 
+// flight 테이블에서 FlightItem으로 일치하는 flight 하나 찾기(id 찾아내기용)
+export const findFlightOne = async (item: FlightItem) => {
+  const flight = await prisma.flight.findUnique({
+    where: {
+      flightNumber_std_airport_io_line: {
+        flightNumber: item.airFln,
+        std: item.std ? String(item.std) : '',
+        airport: item.airport,
+        io: item.io,
+        line: item.line === '국제' ? 'I' : 'D',
+      },
+    },
+  });
+
+  return flight;
+};
+
+// flightStatusHistory 테이블에서 Flight의 id와 일치하는 history를 최신데이터 하나만 찾는 함수
+export const findFlightStatusHistoryOne = async (flightId: number) => {
+  const flightStatusHistory = await prisma.flightStatusHistory.findFirst({
+    where: {
+      flightId,
+    },
+    orderBy: {
+      changedAt: 'desc',
+    },
+  });
+
+  return flightStatusHistory;
+};
+
+// FlightStatusHistory 데이터 업데이트
+export const updateFlightStatusHistory = async (id: number, flightHistoryDto: FlightHistoryDTO) => {
+  await prisma.flightStatusHistory.update({
+    where: { id },
+    data: {
+      ...flightHistoryDto,
+      flightId: Number(flightHistoryDto.flightId),
+    },
+  });
+};
+
+// FlightStatusHistory에 데이터 추가
+export const createFlightStatusHistory = async (flightHistoryDto: FlightHistoryDTO) => {
+  await prisma.flightStatusHistory.create({
+    data: {
+      ...flightHistoryDto,
+      flightId: Number(flightHistoryDto.flightId),
+    },
+  });
+};
+
 // 동기화
 export const syncFlights = async (options: SyncFlightsOptions) => {
   const forceInit = options.forceInit ?? false;
@@ -239,7 +295,7 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
   flightsUpsert();
 
   const existingCount = await prisma.flightStatusHistory.count(); // 테이블이 비어있는지 확인
-  const isInitialSync = forceInit || existingCount === 0; // 최초 sync 상태 여부 판별
+  const isInitialSync = forceInit || existingCount === 0; // 최초 변경사항 sync 상태 여부 판별
 
   await Promise.all(
     flights.map((item) =>
@@ -247,21 +303,15 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
         // console.log('[DEBUG] item: ', item);
 
         const flightNumber = item.airFln;
-        const std = item.std ? String(item.std) : '';
-        const etd = item.etd ? String(item.etd) : '';
-        const gate = item.gate ? String(item.gate) : '';
-        const line = item.line === '국제' ? 'I' : 'D';
         const newStatus = item.rmkKor ?? null;
 
-        // 이전 상태 조회
-        const existing = await prisma.flightStatusHistory.findUnique({
-          where: {
-            flightNumber_std: {
-              flightNumber,
-              std,
-            },
-          },
-        });
+        // 이전 상태 이력 조회
+        // 1. Flight 테이블에서 flightId 찾기
+        const flight = await findFlightOne(item);
+
+        // 2. flightId로 상태 이력 조회
+        if (flight === null) return null;
+        const existing = await findFlightStatusHistoryOne(Number(flight.id));
 
         const prevStatus = existing?.newStatus || null;
 
@@ -275,54 +325,19 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
 
         // 변경 내역 기록
         if (prevStatus !== newStatus) {
-          await prisma.flightStatusHistory.upsert({
-            where: {
-              flightNumber_std: {
-                flightNumber,
-                std,
-              },
-            },
-            update: {
-              prevStatus,
-              newStatus,
-              changedAt: new Date(),
-              etd,
-              airport: item.airport,
-              line,
-              io: item.io,
-              gate,
-              airlineKor: item.airlineKorean,
-              airlineEng: item.airlineEnglish,
-              boardingKor: item.boardingKor,
-              boardingEng: item.boardingEng,
-              arrivedKor: item.arrivedKor,
-              arrivedEng: item.arrivedEng,
-              city: item.city,
-              rmkKor: item.rmkKor,
-              rmkEng: item.rmkEng,
-            },
-            create: {
-              flightNumber: item.airFln,
-              std,
-              etd,
-              prevStatus,
-              newStatus,
-              changedAt: new Date(),
-              airport: item.airport,
-              line,
-              io: item.io,
-              gate,
-              airlineKor: item.airlineKorean,
-              airlineEng: item.airlineEnglish,
-              boardingKor: item.boardingKor,
-              boardingEng: item.boardingEng,
-              arrivedKor: item.arrivedKor,
-              arrivedEng: item.arrivedEng,
-              city: item.city,
-              rmkKor: item.rmkKor,
-              rmkEng: item.rmkEng,
-            },
-          });
+          const flightHistoryDto = toFlightHistoryDTO(
+            item,
+            prevStatus,
+            newStatus,
+            flight.id.toString(),
+          );
+
+          // FlightStatusHistory 테이블 update or create
+          if (existing) {
+            await updateFlightStatusHistory(Number(existing.id), flightHistoryDto);
+          } else {
+            await createFlightStatusHistory(flightHistoryDto);
+          }
 
           console.log(
             `[${forceInit ? '초기 기록' : '상태 변경'}] ${flightNumber} (${prevStatus} → ${newStatus})`,

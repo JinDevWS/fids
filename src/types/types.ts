@@ -1,4 +1,4 @@
-import { Flight } from '@prisma';
+import { Flight, FlightStatusHistory } from '@prisma';
 
 export type FlightItem = {
   airFln: string;
@@ -14,7 +14,7 @@ export type FlightItem = {
   io: string; // 출/도착 구분: I or O
   line: string; // 국내/국제선: D or I
   std: string; // 예정 출발시간
-  etd: string; // 실제 출발시간
+  etd?: string; // 실제 출발시간
   rmkKor?: string; // 상태 (한글)
   rmkEng?: string; // 상태 (영문)
 };
@@ -62,3 +62,32 @@ export interface FlightState {
   flights: Flight[];
   setFlights: (list: Flight[]) => void;
 }
+
+export type FlightHistoryDTO = {
+  flightId: string; // BigInt -> string
+  flightNumber: string;
+  std: string;
+  etd?: string | null;
+  airport: string;
+  line: string;
+  io: string;
+
+  prevStatus?: string | null;
+  newStatus?: string | null;
+  changedAt: Date;
+
+  gate?: string | null;
+  statusKor?: string | null;
+  statusEng?: string | null;
+
+  airlineKor: string;
+  airlineEng: string;
+  boardingKor: string;
+  boardingEng: string;
+  arrivedKor: string;
+  arrivedEng: string;
+  city: string;
+
+  rmkKor?: string | null;
+  rmkEng?: string | null;
+};
