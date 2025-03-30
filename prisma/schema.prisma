@@ -9,83 +9,94 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  name       String?
-  image      String?
-  password   String? // 이메일 로그인 시
-  provider   String? // OAuth 제공자 (예: 'google')
-  providerId String? // OAuth 유저 ID
-  createdAt  DateTime @default(now())
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String?
+  image       String?
+  password    String?   // 이메일 로그인 시
+  provider    String?   // OAuth 제공자 (예: 'google')
+  providerId  String?   // OAuth 유저 ID
+  createdAt   DateTime @default(now())
 
   subscriptions PushSubscription[]
 }
 
 model Flight {
-  id           BigInt  @id @default(autoincrement())
-  flightNumber String  @db.VarChar(8)
-  std          String  @db.VarChar(4) // 예정 시간
-  etd          String? @db.VarChar(4) // 실제 시간
-  airport      String  @db.VarChar(4)
-  line         String  @db.VarChar(1) // 'I': 국제선, 'D': 국내선
-  io           String  @db.VarChar(1) // 'I': 출발, 'O': 도착
+  id           BigInt   @id @default(autoincrement())
+  flightNumber String   @db.VarChar(8)
+  std          String   @db.VarChar(4)
+  etd          String?  @db.VarChar(4)
+  airport      String   @db.VarChar(4)
+  line         String   @db.VarChar(1) // 'I': 국제선, 'D': 국내선
+  io           String   @db.VarChar(1) // 'I': 출발, 'O': 도착
+
   gate         String?
   statusKor    String?
   statusEng    String?
-  airlineKor   String?
-  airlineEng   String?
-  boardingKor  String?
-  boardingEng  String?
-  arrivedKor   String?
-  arrivedEng   String?
-  city         String?
 
-  histories FlightStatusHistory[]
+  airlineKor   String
+  airlineEng   String
+  boardingKor  String
+  boardingEng  String
+  arrivedKor   String
+  arrivedEng   String
+  city         String
 
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  histories    FlightStatusHistory[]
 
-  @@unique([flightNumber, std, airport, io, line]) // 항공편 유일성 보장
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([flightNumber, std, airport, io, line])    // 항공편 유일성 보장
 }
 
 model FlightStatusHistory {
-  id       BigInt @id @default(autoincrement())
-  flightId BigInt
-  flight   Flight @relation(fields: [flightId], references: [id])
+  id           BigInt   @id @default(autoincrement())
 
-  prevStatus String?
-  newStatus  String?
-  changedAt  DateTime @default(now())
+  flightId     BigInt
+  flight       Flight   @relation(fields: [flightId], references: [id])
 
-  airlineKor  String?
-  airlineEng  String?
-  airport     String?
-  boardingKor String?
-  boardingEng String?
-  arrivedKor  String?
-  arrivedEng  String?
-  gate        String?
-  io          String?
-  line        String?
-  city        String?
-  rmkKor      String?
-  rmkEng      String?
+  flightNumber String   @db.VarChar(8)
+  std          String   @db.VarChar(4)
+  etd          String?  @db.VarChar(4)
+  airport      String
+  line         String
+  io           String
+
+  prevStatus   String?
+  newStatus    String?
+  changedAt    DateTime @default(now())
+
+  gate         String?
+  statusKor    String?
+  statusEng    String?
+
+  airlineKor   String
+  airlineEng   String
+  boardingKor  String
+  boardingEng  String
+  arrivedKor   String
+  arrivedEng   String
+  city         String
+
+  rmkKor       String?
+  rmkEng       String?
 }
 
 model PushSubscription {
-  id        BigInt   @id @default(autoincrement())
-  endpoint  String   @unique
-  auth      String
-  p256dh    String
-  enabled   Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id          BigInt   @id @default(autoincrement())
+  endpoint    String   @unique
+  auth        String
+  p256dh      String
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
 
-  airportCode String // 예: "GMP"
-  lineType    String // 'I' or 'D'
-  ioType      String // 'I' or 'O'
+  airportCode String   // 예: 'GMP'
+  lineType    String   // 'I' or 'D'
+  ioType      String   // 'I' or 'O'
 
   @@unique([userId, airportCode, lineType, ioType]) // 한 명당 한 조합만 구독 가능
 }
