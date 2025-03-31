@@ -1,10 +1,9 @@
-// import { prisma } from '@/lib/prisma';
 import {
-  deletePushSubscByUnique,
-  getPushSubscriptionEnabled,
-  updatePushSubscription,
-  upsertPushSubscription,
-} from '@/daos/pushSubscriptionDao';
+  deletePushSubscUnique,
+  getPushSubscEnable,
+  updatePushSubsc,
+  upsertPushSubsc,
+} from '@/services/pushSubscriptionService';
 import {
   PushSubscriptionFields,
   PushSubscriptionUniqueKeys,
@@ -25,7 +24,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const subscriptionEnabled = await getPushSubscriptionEnabled({
+    const subscriptionEnabled = await getPushSubscEnable({
       userId,
       airportCode,
       lineType,
@@ -67,7 +66,7 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    await upsertPushSubscription(fields);
+    await upsertPushSubsc(fields);
 
     return NextResponse.json({ success: true });
   } catch (err) {
@@ -100,7 +99,7 @@ export async function PATCH(req: NextRequest) {
   };
 
   try {
-    const updatedCount = await updatePushSubscription(options);
+    const updatedCount = await updatePushSubsc(options);
 
     if (updatedCount === 0) {
       return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
@@ -131,7 +130,7 @@ export async function DELETE(req: NextRequest) {
   };
 
   try {
-    await deletePushSubscByUnique(uniqueKeys);
+    await deletePushSubscUnique(uniqueKeys);
 
     return NextResponse.json({ success: true });
   } catch (err) {

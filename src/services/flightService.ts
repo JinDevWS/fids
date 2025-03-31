@@ -3,16 +3,16 @@ import { sendPushNotification } from '@/utils/pushNotification';
 import pLimit from 'p-limit';
 import { FlightItem, FlightList, SyncConfigOptions, SyncFlightsOptions } from '@/types/types';
 import { toFlightHistoryDTO } from './flightHistoryMapper';
-import { findSyncConfig, upsertSyncConfig } from '@/daos/syncConfigDao';
-import { findFlightMany, findFlightOne, flightUpsert } from '@/daos/flightDao';
-import { deletePushSubscription, findPushSubscriptionMany } from '@/daos/pushSubscriptionDao';
-import {
-  createFlightStatusHistory,
-  findFlightStatusHistoryOne,
-  getFlightStatusHistoryCount,
-  updateFlightStatusHistory,
-} from '@/daos/flightStatusHistoryDao';
 import { WebPushError } from 'web-push';
+import {
+  createFlightHistory,
+  findFlightHistoryOne,
+  getFlightHistoryCount,
+  updateFlightHistory,
+} from './flightHistoryService';
+import { findSyncConf, upsertSyncConf } from './syncConfigService';
+import { deletePushSubsc, findPushSubscMany } from './pushSubscriptionService';
+import { findFlightMany, findFlightOne, flightUpsert } from '@/daos/flightDao';
 
 const url = 'http://openapi.airport.co.kr:80/service/rest/FlightStatusList/getFlightStatusList';
 const serviceKey = process.env.AIRPORT_API_KEY;
@@ -20,12 +20,12 @@ const limit = pLimit(10); // 병렬 처리 제한
 
 // 항공편 동기화용 필터링 설정값(공항코드, 국제선/국내선, 출발/도착) 조회 및 upsert
 export const getSyncConfig = async (): Promise<SyncConfigOptions> => {
-  const config = await findSyncConfig();
+  const config = await findSyncConf();
 
   // DB에 값이 없으면 upsert해주고 기본셋팅값(김포, 국제선, 도착) 리턴
   if (config === null) {
     const defaultConfig = { airport: 'GMP', line: 'I', io: 'I' };
-    await upsertSyncConfig(defaultConfig);
+    await upsertSyncConf(defaultConfig);
     return defaultConfig;
   }
 
@@ -111,7 +111,7 @@ export const sendPush = async (item: FlightItem) => {
   const newStatus = item.rmkKor ?? null;
 
   // 구독자 필터링
-  const subscriptions = await findPushSubscriptionMany(item);
+  const subscriptions = await findPushSubscMany(item);
 
   // 푸시 알림 병렬 전송
   if (subscriptions === null) return;
@@ -141,7 +141,7 @@ export const sendPush = async (item: FlightItem) => {
 
           if (e.statusCode === 410 || e.statusCode === 404) {
             try {
-              await deletePushSubscription(Number(sub.id));
+              await deletePushSubsc(Number(sub.id));
               console.log(`만료된 구독 제거됨: ${sub.endpoint}`);
             } catch (deleteError) {
               console.error('구독 삭제 실패:', deleteError);
@@ -179,7 +179,7 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
   // Flight 스냅샷 테이블 upsert
   flightsUpsert();
 
-  const existingCount = await getFlightStatusHistoryCount(); // 테이블이 비어있는지 확인
+  const existingCount = await getFlightHistoryCount(); // 테이블이 비어있는지 확인
   const isInitialSync = forceInit || existingCount === 0; // 최초 변경사항 sync 상태 여부 판별
 
   await Promise.all(
@@ -196,7 +196,7 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
 
         // 2. flightId로 상태 이력 조회
         if (flight === null) return null;
-        const existing = await findFlightStatusHistoryOne(Number(flight.id));
+        const existing = await findFlightHistoryOne(Number(flight.id));
 
         const prevStatus = existing?.newStatus || null;
 
@@ -219,9 +219,9 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
 
           // FlightStatusHistory 테이블 update or create
           if (existing) {
-            await updateFlightStatusHistory(Number(existing.id), flightHistoryDto);
+            await updateFlightHistory(Number(existing.id), flightHistoryDto);
           } else {
-            await createFlightStatusHistory(flightHistoryDto);
+            await createFlightHistory(flightHistoryDto);
           }
 
           console.log(

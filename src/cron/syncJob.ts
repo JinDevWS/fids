@@ -21,14 +21,14 @@ import cron, { ScheduledTask } from 'node-cron';
 import { syncFlights } from '@/services/flightService';
 import { DateTime } from 'luxon';
 import { SyncFlightsOptions } from '@/types/types';
-import { findSyncConfig } from '@/daos/syncConfigDao';
+import { findSyncConf } from '@/services/syncConfigService';
 
 let currentTask: ScheduledTask | null = null;
 
 export const startSelectedSync = async () => {
   console.log('[CRON] startSelectedSync() 실행됨');
 
-  const config = await findSyncConfig();
+  const config = await findSyncConf();
   let dateTime = DateTime.now().setZone('Asia/Seoul').toFormat('yyyy-MM-dd HH:mm:ss');
 
   if (!config) {

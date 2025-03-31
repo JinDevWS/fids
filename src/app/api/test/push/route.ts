@@ -1,10 +1,10 @@
-import { findPushSubscriptionFirst } from '@/daos/pushSubscriptionDao';
+import { findPushSubscFirst } from '@/services/pushSubscriptionService';
 import { sendPushNotification } from '@/utils/pushNotification';
 import { NextResponse } from 'next/server';
 
 // POSTMAN으로 http://localhost:3000/api/test/push 경로로 post 요청 날리는 테스트용 코드
 export async function POST() {
-  const sub = await findPushSubscriptionFirst();
+  const sub = await findPushSubscFirst();
 
   if (!sub) return NextResponse.json({ error: 'No subscriber' }, { status: 404 });
 
