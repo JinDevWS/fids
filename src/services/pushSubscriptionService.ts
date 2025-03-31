@@ -51,7 +51,7 @@ export const deletePushSubscUnique = async (uniqueKeys: PushSubscriptionUniqueKe
 };
 
 // 410 | 404 코드 떨어지면 푸시 구독 삭제
-export const deletePushSubsc = async (subId: number) => {
+export const deletePushSubsc = async (subId: string) => {
   await deletePushSubscription(subId);
 };
 

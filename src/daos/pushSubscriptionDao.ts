@@ -40,9 +40,9 @@ export const findPushSubscriptionMany = async (
 };
 
 // DB에서 푸시 구독 내역 삭제
-export const deletePushSubscription = async (id: number) => {
+export const deletePushSubscription = async (id: string) => {
   prisma.pushSubscription.delete({
-    where: { id },
+    where: { id: BigInt(id) },
   });
 };
 

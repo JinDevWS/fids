@@ -141,7 +141,7 @@ export const sendPush = async (item: FlightItem) => {
 
           if (e.statusCode === 410 || e.statusCode === 404) {
             try {
-              await deletePushSubsc(Number(sub.id));
+              await deletePushSubsc(String(sub.id));
               console.log(`만료된 구독 제거됨: ${sub.endpoint}`);
             } catch (deleteError) {
               console.error('구독 삭제 실패:', deleteError);
@@ -154,7 +154,7 @@ export const sendPush = async (item: FlightItem) => {
 };
 
 // Flight 스냅샷 테이블 upsert 함수
-export const flightsUpsert = async () => {
+export const flightsUpsertAll = async () => {
   const flightsAll = await fetchFlightStatusAll();
 
   await Promise.all(
@@ -170,6 +170,7 @@ export const flightsUpsert = async () => {
 
 // 테이블 동기화 (Flight 테이블 + FlightStatusHistory 테이블)
 export const syncFlights = async (options: SyncFlightsOptions) => {
+  console.log('syncFlights options: ', options);
   const forceInit = options.forceInit ?? false;
   const flights = await fetchFlightStatus(options);
 
@@ -177,7 +178,7 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
   // console.log('[DEBUG] 원본 응답:', JSON.stringify(flights, null, 2));
 
   // Flight 스냅샷 테이블 upsert
-  flightsUpsert();
+  flightsUpsertAll();
 
   const existingCount = await getFlightHistoryCount(); // 테이블이 비어있는지 확인
   const isInitialSync = forceInit || existingCount === 0; // 최초 변경사항 sync 상태 여부 판별
@@ -193,17 +194,19 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
         // 이전 상태 이력 조회
         // 1. Flight 테이블에서 flightId 찾기
         const flight = await findFlightOne(item);
+        // console.log('findFlightOne으로 찾은 flight: ', flight);
 
         // 2. flightId로 상태 이력 조회
         if (flight === null) return null;
-        const existing = await findFlightHistoryOne(Number(flight.id));
+        const existing = await findFlightHistoryOne(String(flight.id));
+        console.log('existing: ', existing);
 
         const prevStatus = existing?.newStatus || null;
 
-        // console.log(`[DEBUG] forceInit: ${forceInit}`);
-        // console.log(
-        //   `[DEBUG] flight: ${flightNumber}, std: ${std}, prev: ${prevStatus}, new: ${newStatus}`,
-        // );
+        console.log(`[DEBUG] forceInit: ${forceInit}`);
+        console.log(
+          `[DEBUG] flight: ${flightNumber}, std: ${item.std}, prev: ${prevStatus}, new: ${newStatus}`,
+        );
 
         // 강제 기록이 아니면서 상태가 동일하면 스킵
         if (!forceInit && prevStatus === newStatus) return;
@@ -219,7 +222,7 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
 
           // FlightStatusHistory 테이블 update or create
           if (existing) {
-            await updateFlightHistory(Number(existing.id), flightHistoryDto);
+            await updateFlightHistory(String(existing.id), flightHistoryDto);
           } else {
             await createFlightHistory(flightHistoryDto);
           }

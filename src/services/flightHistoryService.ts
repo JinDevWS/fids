@@ -14,13 +14,13 @@ export const getFlightHistoryCount = async (): Promise<number> => {
 
 // flightId로 status history 데이터 하나 찾기
 export const findFlightHistoryOne = async (
-  flightId: number,
+  flightId: string,
 ): Promise<FlightStatusHistory | null> => {
   return await findFlightStatusHistoryOne(flightId);
 };
 
 // 히스토리 데이터 업데이트
-export const updateFlightHistory = async (id: number, flightHistoryDto: FlightHistoryDTO) => {
+export const updateFlightHistory = async (id: string, flightHistoryDto: FlightHistoryDTO) => {
   await updateFlightStatusHistory(id, flightHistoryDto);
 };
 

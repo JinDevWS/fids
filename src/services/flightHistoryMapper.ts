@@ -14,19 +14,19 @@ export function toFlightHistoryDTO(
   flightId: string,
 ): FlightHistoryDTO {
   return {
-    flightId: flightId.toString(), // BigInt → string
+    flightId, // BigInt(error) string(안전)
     flightNumber: item.airFln,
-    std: item.std,
-    etd: item.etd,
+    std: String(item.std),
+    etd: item.etd ? String(item.etd) : '',
     airport: item.airport,
-    line: item.line,
+    line: item.line === '국제' ? 'I' : 'D',
     io: item.io,
 
     prevStatus,
     newStatus,
     changedAt: new Date(), // 현재 시각 기준 변경시간
 
-    gate: item.gate,
+    gate: item.gate ? String(item.gate) : '',
     airlineKor: item.airlineKorean,
     airlineEng: item.airlineEnglish,
     boardingKor: item.boardingKor,

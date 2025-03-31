@@ -3,7 +3,7 @@
 import { getFlightList } from '@/services/flightService';
 import { syncChannel } from '@/utils/syncLeader';
 import { isCurrentLeader, broadcastSyncedData } from '@/utils/syncLeader';
-import { updateUI } from '@/utils/updateUI'; // TODO: UI 갱신 로직은 프로젝트에 맞게 연결
+import { updateUI } from '@/utils/updateUI';
 
 export function initSyncListeners(): void {
   syncChannel.onmessage = async (event) => {

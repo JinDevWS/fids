@@ -4,11 +4,11 @@ import { FlightStatusHistory } from '@prisma';
 
 // flightStatusHistory 테이블에서 Flight의 id와 일치하는 history를 최신데이터 하나만 찾는 함수
 export const findFlightStatusHistoryOne = async (
-  flightId: number,
+  flightId: string,
 ): Promise<FlightStatusHistory | null> => {
   const flightStatusHistory = await prisma.flightStatusHistory.findFirst({
     where: {
-      flightId,
+      flightId: BigInt(flightId),
     },
     orderBy: {
       changedAt: 'desc',
@@ -20,21 +20,22 @@ export const findFlightStatusHistoryOne = async (
 
 // FlightStatusHistory에 데이터 추가
 export const createFlightStatusHistory = async (flightHistoryDto: FlightHistoryDTO) => {
+  console.log('createFlightStatusHistory flightHistoryDto: ', flightHistoryDto);
   await prisma.flightStatusHistory.create({
     data: {
       ...flightHistoryDto,
-      flightId: Number(flightHistoryDto.flightId),
+      flightId: BigInt(flightHistoryDto.flightId),
     },
   });
 };
 
 // FlightStatusHistory 데이터 업데이트
-export const updateFlightStatusHistory = async (id: number, flightHistoryDto: FlightHistoryDTO) => {
+export const updateFlightStatusHistory = async (id: string, flightHistoryDto: FlightHistoryDTO) => {
   await prisma.flightStatusHistory.update({
-    where: { id },
+    where: { id: BigInt(id) },
     data: {
       ...flightHistoryDto,
-      flightId: Number(flightHistoryDto.flightId),
+      flightId: BigInt(flightHistoryDto.flightId),
     },
   });
 };

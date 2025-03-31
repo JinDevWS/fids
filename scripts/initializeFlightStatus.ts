@@ -13,6 +13,7 @@ import { SyncFlightsOptions } from '@/types/types';
     schAirCode: 'GMP',
     schLineType: 'I',
     schIOType: 'I',
+    forceInit: true,
   };
   await syncFlights(options);
   console.log('초기화 완료');
