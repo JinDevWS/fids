@@ -105,7 +105,7 @@ export const fetchFlightStatus = async ({
 
 // 푸시 알림 전송
 export const sendPush = async (item: FlightItem) => {
-  const flightNumber = item.airFln;
+  const flightNumber = String(item.airFln);
   const etd = item.etd ? String(item.etd) : null;
   const gate = item.gate ? String(item.gate) : '';
   const newStatus = item.rmkKor ?? null;
@@ -188,7 +188,7 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
       limit(async () => {
         // console.log('[DEBUG] item: ', item);
 
-        const flightNumber = item.airFln;
+        const flightNumber = String(item.airFln);
         const newStatus = item.rmkKor ?? null;
 
         // 이전 상태 이력 조회

@@ -105,3 +105,28 @@ export type PushSubscriptionEnabled = {
 };
 
 export type FlightList = Prisma.FlightGetPayload<{ include: { histories: true } }>[] | null;
+
+/**
+ * 리더가 되었을 때 호출할 콜백 함수 타입
+ */
+export type SyncLeaderCallback = () => void;
+
+/**
+ * BroadcastChannel을 통해 주고받는 메시지 타입 정의
+ *
+ * @property {'is-there-a-leader' | 'leader-alive' | 'leader-ping' | 'sync-data' | 'push-received'} type
+ * @property {boolean=} iAmPWA 내가 pwa인지 여부
+ * @property {any=} payload 기타 전송 데이터
+ */
+export interface ChannelMessage {
+  /**
+   * 'is-there-a-leader': 다른 리더가 있는지 전체 탭에 질문 |
+   * 'leader-alive': 리더가 살아 있음을 알림 |
+   * 'leader-ping': 리더가 살아있다는 ping 수신 |
+   * 'sync-data': 리더가 데이터를 받은 뒤 전체 탭에 브로드캐스트 |
+   * 'push-received': 푸시를 수신받음
+   */
+  type: 'is-there-a-leader' | 'leader-alive' | 'leader-ping' | 'sync-data' | 'push-received';
+  iAmPWA?: boolean;
+  payload?: any;
+}

@@ -15,7 +15,7 @@ export function toFlightHistoryDTO(
 ): FlightHistoryDTO {
   return {
     flightId, // BigInt(error) string(안전)
-    flightNumber: item.airFln,
+    flightNumber: String(item.airFln),
     std: String(item.std),
     etd: item.etd ? String(item.etd) : '',
     airport: item.airport,

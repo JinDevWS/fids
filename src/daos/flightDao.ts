@@ -22,7 +22,7 @@ export const findFlightOne = async (item: FlightItem): Promise<Flight | null> =>
   const flight = await prisma.flight.findUnique({
     where: {
       flightNumber_std_airport_io_line: {
-        flightNumber: item.airFln,
+        flightNumber: String(item.airFln),
         std: item.std ? String(item.std) : '',
         airport: item.airport,
         io: item.io,
@@ -36,7 +36,9 @@ export const findFlightOne = async (item: FlightItem): Promise<Flight | null> =>
 
 // DB에 flight upsert
 export const flightUpsert = async (item: FlightItem) => {
-  const flightNumber = item.airFln;
+  // console.log('flightUpsert', item);
+
+  const flightNumber = String(item.airFln);
   const std = item.std ? String(item.std) : '';
   const etd = item.etd ? String(item.etd) : '';
   const gate = item.gate ? String(item.gate) : '';

@@ -21,6 +21,10 @@ self.addEventListener('push', function (event) {
   console.log('showNotification 호출됨:', title, options);
 
   event.waitUntil(self.registration.showNotification(title, options));
+
+  // 브라우저 탭들에게 'push-received' 메시지 전달
+  const channel = new BroadcastChannel('fids-sync-leader');
+  channel.postMessage({ type: 'push-received' });
 });
 
 // 알림 클릭 시 이동

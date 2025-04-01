@@ -1,6 +1,6 @@
 // 앱 초기화용 컴포넌트
 
-import VisibilityChangeListener from './VisibilityChangeListener';
+//import VisibilityChangeListener from './VisibilityChangeListener';
 
 export default function AppInit() {
   // cron 백그라운드 작업 호출
@@ -13,5 +13,6 @@ export default function AppInit() {
     });
 
   // 포그라운드 복귀 시 항공편 목록 갱신
-  return <VisibilityChangeListener />;
+  // return <VisibilityChangeListener />;
+  return null;
 }
