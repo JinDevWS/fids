@@ -5,8 +5,17 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const data = await getFlightList();
+    //console.log('getFlightList GET data: ', data);
+
     const serialized = data?.map((item) => ({
       ...item,
+      histories: [
+        {
+          ...item.histories[0],
+          id: String(item.histories[0].id),
+          flightId: String(item.histories[0].flightId),
+        },
+      ],
       id: item.id.toString(), // BigInt를 문자열로 변환
     }));
 

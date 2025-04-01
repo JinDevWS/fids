@@ -6,6 +6,7 @@ export async function handleManualRefresh() {
   try {
     const res = await fetch('/api/list');
     const data = await res.json();
+    // console.log(data);
 
     updateUI(data); // 현재 탭만 갱신
   } catch (err) {

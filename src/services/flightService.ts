@@ -170,7 +170,7 @@ export const flightsUpsertAll = async () => {
 
 // 테이블 동기화 (Flight 테이블 + FlightStatusHistory 테이블)
 export const syncFlights = async (options: SyncFlightsOptions) => {
-  console.log('syncFlights options: ', options);
+  // console.log('syncFlights options: ', options);
   const forceInit = options.forceInit ?? false;
   const flights = await fetchFlightStatus(options);
 
@@ -199,14 +199,14 @@ export const syncFlights = async (options: SyncFlightsOptions) => {
         // 2. flightId로 상태 이력 조회
         if (flight === null) return null;
         const existing = await findFlightHistoryOne(String(flight.id));
-        console.log('existing: ', existing);
+        // console.log('existing: ', existing);
 
         const prevStatus = existing?.newStatus || null;
 
-        console.log(`[DEBUG] forceInit: ${forceInit}`);
-        console.log(
-          `[DEBUG] flight: ${flightNumber}, std: ${item.std}, prev: ${prevStatus}, new: ${newStatus}`,
-        );
+        // console.log(`[DEBUG] forceInit: ${forceInit}`);
+        // console.log(
+        //   `[DEBUG] flight: ${flightNumber}, std: ${item.std}, prev: ${prevStatus}, new: ${newStatus}`,
+        // );
 
         // 강제 기록이 아니면서 상태가 동일하면 스킵
         if (!forceInit && prevStatus === newStatus) return;

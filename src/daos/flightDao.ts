@@ -4,9 +4,12 @@ import { Flight } from '@prisma';
 
 // DB에서 항공편 목록 조회
 export const findFlightMany = async (config: SyncConfigOptions): Promise<FlightList> => {
+  // console.log('findFlightMany config: ', config);
   return await prisma.flight.findMany({
     where: {
-      ...config,
+      airport: config.airport,
+      line: config.line,
+      io: config.io,
     },
     include: {
       histories: {
@@ -38,52 +41,52 @@ export const findFlightOne = async (item: FlightItem): Promise<Flight | null> =>
 export const flightUpsert = async (item: FlightItem) => {
   // console.log('flightUpsert', item);
 
-  const flightNumber = String(item.airFln);
+  const flightNumber = item.airFln ? String(item.airFln) : '';
   const std = item.std ? String(item.std) : '';
   const etd = item.etd ? String(item.etd) : '';
   const gate = item.gate ? String(item.gate) : '';
-  const line = item.line === '국제' ? 'I' : 'D';
+  const line = item.line ? (item.line === '국제' ? 'I' : 'D') : '';
 
   await prisma.flight.upsert({
     where: {
       flightNumber_std_airport_io_line: {
         flightNumber,
         std,
-        airport: item.airport,
-        io: item.io,
+        airport: item.airport ?? '',
+        io: item.io ?? '',
         line,
       },
     },
     update: {
       etd,
       gate,
-      rmkKor: item.rmkKor,
-      rmkEng: item.rmkEng,
-      airlineKor: item.airlineKorean,
-      airlineEng: item.airlineEnglish,
-      boardingKor: item.boardingKor,
-      boardingEng: item.boardingEng,
-      arrivedKor: item.arrivedKor,
-      arrivedEng: item.arrivedEng,
-      city: item.city,
+      rmkKor: item.rmkKor ?? '',
+      rmkEng: item.rmkEng ?? '',
+      airlineKor: item.airlineKorean ?? '',
+      airlineEng: item.airlineEnglish ?? '',
+      boardingKor: item.boardingKor ?? '',
+      boardingEng: item.boardingEng ?? '',
+      arrivedKor: item.arrivedKor ?? '',
+      arrivedEng: item.arrivedEng ?? '',
+      city: item.city ?? '',
     },
     create: {
       flightNumber,
       std,
       etd,
-      airport: item.airport,
-      io: item.io,
+      airport: item.airport ?? '',
+      io: item.io ?? '',
       line,
       gate,
-      rmkKor: item.rmkKor,
-      rmkEng: item.rmkEng,
-      airlineKor: item.airlineKorean,
-      airlineEng: item.airlineEnglish,
-      boardingKor: item.boardingKor,
-      boardingEng: item.boardingEng,
-      arrivedKor: item.arrivedKor,
-      arrivedEng: item.arrivedEng,
-      city: item.city,
+      rmkKor: item.rmkKor ?? '',
+      rmkEng: item.rmkEng ?? '',
+      airlineKor: item.airlineKorean ?? '',
+      airlineEng: item.airlineEnglish ?? '',
+      boardingKor: item.boardingKor ?? '',
+      boardingEng: item.boardingEng ?? '',
+      arrivedKor: item.arrivedKor ?? '',
+      arrivedEng: item.arrivedEng ?? '',
+      city: item.city ?? '',
     },
   });
 };

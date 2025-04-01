@@ -16,26 +16,26 @@ export function toFlightHistoryDTO(
   return {
     flightId, // BigInt(error) string(안전)
     flightNumber: String(item.airFln),
-    std: String(item.std),
+    std: item.etd ? String(item.std) : '',
     etd: item.etd ? String(item.etd) : '',
-    airport: item.airport,
-    line: item.line === '국제' ? 'I' : 'D',
-    io: item.io,
+    airport: item.airport ?? '',
+    line: item.line ? (item.line === '국제' ? 'I' : 'D') : '',
+    io: item.io ?? '',
 
     prevStatus,
     newStatus,
     changedAt: new Date(), // 현재 시각 기준 변경시간
 
     gate: item.gate ? String(item.gate) : '',
-    airlineKor: item.airlineKorean,
-    airlineEng: item.airlineEnglish,
-    boardingKor: item.boardingKor,
-    boardingEng: item.boardingEng,
-    arrivedKor: item.arrivedKor,
-    arrivedEng: item.arrivedEng,
-    city: item.city,
+    airlineKor: item.airlineKorean ?? '',
+    airlineEng: item.airlineEnglish ?? '',
+    boardingKor: item.boardingKor ?? '',
+    boardingEng: item.boardingEng ?? '',
+    arrivedKor: item.arrivedKor ?? '',
+    arrivedEng: item.arrivedEng ?? '',
+    city: item.city ?? '',
 
-    rmkKor: item.rmkKor,
-    rmkEng: item.rmkEng,
+    rmkKor: item.rmkKor ?? '',
+    rmkEng: item.rmkEng ?? '',
   };
 }
